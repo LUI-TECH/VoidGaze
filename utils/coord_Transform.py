@@ -5,12 +5,13 @@ from numpy import sin, cos, tan ,arcsin, arctan2, pi
 def Equ2Spher(x , y, width_px, height_px):
 	horRads = (x *2 * pi) / width_px
 	verRads = (y * pi) / height_px
-	return (horRads, verRads)
+	return np.array([horRads, verRads])
 
 def Spher2Cart(Rads):
 	horRads = Rads[0]
 	verRads = Rads[1]
 	cartVec = np.zeros((3,1))
+
 	cartVec[0]= sin(verRads) * cos(horRads)
 	cartVec[1]= cos(verRads)
 	cartVec[2]= sin(verRads) * sin(horRads)
@@ -53,7 +54,7 @@ def PosTransform(data,meta):
 
 
 	GazeVec_FOV = pointRotation(rotMatrix,CartGaze)
-	return (CartHead,CartGaze,GazeVec_FOV)
+	return (CartHead,CartGaze,GazeVec_FOV,sphereHead,sphereGaze)
 
 def pointRotation(rot,vec):
 	return rot.dot(vec)
@@ -80,8 +81,15 @@ def rotation(vec, angle):
 	return rotMatrix
 
 
-def AngularDisp(u,v):
-	return 2*arctan2(np.linalg.norm(u-v),np.linalg.norm(u+v))
+def AngularDisp(v1,v2):
+
+	v1 = v1.reshape(3)
+	v2 = v2.reshape(3)
+
+	""" Returns the angle in radians between vectors 'v1' and 'v2'    """
+	cosang = np.dot(v1, v2)
+	sinang = np.linalg.norm(np.cross(v1, v2))
+	return np.arctan2(sinang, cosang)
 
 	
 if __name__ == "__main__":

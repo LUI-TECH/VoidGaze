@@ -1,12 +1,14 @@
 from scipy.io import arff
 import pandas as pd
-import numpy as np
-
 import re
-from coord_Transform import AngularDisp, PosTransform
-from numpy import save
 import os 
 
+import numpy as np
+from numpy import save
+
+
+
+from utils.coord_Transform import AngularDisp, PosTransform
 
 
 
@@ -17,17 +19,21 @@ def loadArff(path):
 	data = arff.loadarff(path)
 	dataarray = pd.DataFrame(data[0]).to_numpy()
 	dataArray = np.delete(dataarray,8,1)
-	for i in dataArray:
+	delete = []
+
+	for indice, i in enumerate(dataArray):
 		if i[7] == b'fixation':
-			i[7] = 1
+			dataArray[indice,7] = 0
 		elif i[7] == b'saccade':
-			i[7] = 2
-		elif i[7] == b'sp':
-			i[7] = 3
+			dataArray[indice,7] = 1
+		elif i[7] == b'SP':
+			dataArray[indice,7] = 1
 		elif i[7] == b'noise':
-			i[7] = 4
-		else:
-			i[7] = 0
+			delete.append(indice)
+
+	data = np.delete(dataArray,delete,0)
+
+
 
 
 	f = open(path, "r")
@@ -40,31 +46,35 @@ def loadArff(path):
 			word = re.findall(r'\S+', line)
 			metadata[word[1]] = float(word[2])
 
-	return dataArray, metadata
+	return data, metadata
 
 def createInputs(dataArray,metadata):
 
-	CartPosition = np.zeros((len(dataArray),12))
+	Data = np.zeros((len(dataArray),9))
 	for i in range(len(dataArray)):
-		(CartHead,CartGaze,GazeVec_FOV) = PosTransform(dataArray[i],metadata)
+		(CartHead,CartGaze,GazeVec_FOV,sphereHead,sphereGaze) = PosTransform(dataArray[i],metadata)
+
+
 
 		if i == 0:
-			headDisp = np.array([[0.0],[0.0],[0.0]])
+			headDisp = np.array([0.0,0.0])
 			angDisp = 0.0
 			angVelocity = 0.0
 		if i> 0:
-			headDisp = CartHead - CartHead_last
+			headDisp = sphereHead - sphereHead_last
 
 			angDisp = AngularDisp(CartHead,CartHead_last)
-			angVelocity = angDisp/(dataArray[i,0] - dataArray[i-1,0])
+			angVelocity = 1000000*angDisp/(dataArray[i,0] - dataArray[i-1,0])
 
-		CartPosition[i] = np.array([CartGaze[0,0],CartGaze[1,0],CartGaze[2,0],
-			CartHead[0,0],CartHead[1,0],CartHead[2,0], 
-			headDisp[0,0], headDisp[1,0], headDisp[2,0],
-			angDisp, angVelocity, dataArray[i,7]
-			],dtype=float)
+		Data[i] = np.array([sphereGaze[0],sphereGaze[1],
+							sphereHead[0],sphereHead[1], 
+							headDisp[0], headDisp[1],
+							angDisp, angVelocity, dataArray[i,7]
+									],dtype=float)
+		sphereHead_last = sphereHead
 		CartHead_last = CartHead
-	return CartPosition
+
+	return Data
 
 def DataSaver(file_paths):
 	data = None
@@ -79,23 +89,26 @@ def DataSaver(file_paths):
 		else:
 			data = np.append(data,proceeded,axis=0)
 		count = 1
-	
-	save('TrainSet.npy', data)
+
+	save('/Users/louitech_zero/VoidGaze/data/TestSet.npy', data)
 	print("size of data saved:",data.shape)
 
+
+def Loader(path):
+	return np.load(path)
 
 
 
 if __name__ == '__main__':
 
-	np.load('TrainSet.npy')
 
-	'''
-	directory = '/Users/louitech_zero/Desktop/360_em_dataset/ground_truth/train/'
+
+	
+	directory = '/Users/louitech_zero/Desktop/360_em_dataset/ground_truth/test/'
 	files = []
 	for r, d, f in os.walk(directory):
 		for file in f:
 			files.append(os.path.join(r, file))
 
 	DataSaver(files)
-	'''
+	
