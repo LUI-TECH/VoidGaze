@@ -1,11 +1,45 @@
 import numpy as np
+from math import sin,cos,asin,tan,atan2, acos, pi
 
-from numpy import sin, cos, tan ,arcsin, arctan2, pi
+
+def Spher2Equ(horRads, verRads, widthPx, heightPx):
+	xEq = (horRads / (2 * pi)) * widthPx
+	yEq = (verRads / pi) * heightPx
+	if yEq < 0:
+		yEq = -yEq
+		xEq = xEq + widthPx/2
+	
+
+	if yEq >= heightPx:
+		yEq = 2 * heightPx - yEq -1
+		xEq = xEq + widthPx/2
+
+
+	if xEq < 0:
+		xEq = widthPx + xEq - 1
+
+
+	if xEq > widthPx:
+		xEq = xEq - widthPx
+	return np.array([xEq,yEq])
+
+def Cart2Spher(CartVec):
+	if all(CartVec) == 0:
+		value = 0.0
+	else: 
+		value = CartVec[1]/(np.sqrt(CartVec[0]**2+CartVec[1]**2+CartVec[2]**2))
+	verRads = acos(value)
+	horRads = atan2(CartVec[2],CartVec[0])
+	return np.array([horRads, verRads])
+
 
 def Equ2Spher(x , y, width_px, height_px):
 	horRads = (x *2 * pi) / width_px
 	verRads = (y * pi) / height_px
 	return np.array([horRads, verRads])
+
+
+
 
 def Spher2Cart(Rads):
 	horRads = Rads[0]
@@ -16,6 +50,9 @@ def Spher2Cart(Rads):
 	cartVec[1]= cos(verRads)
 	cartVec[2]= sin(verRads) * sin(horRads)
 	return cartVec
+
+
+
 
 
 
@@ -54,17 +91,17 @@ def PosTransform(data,meta):
 
 
 	GazeVec_FOV = pointRotation(rotMatrix,CartGaze)
-	return (CartHead,CartGaze,GazeVec_FOV,sphereHead,sphereGaze)
+	return (CartHead,CartGaze,GazeVec_FOV)
 
 def pointRotation(rot,vec):
 	return rot.dot(vec)
 
 def rotation(vec, angle):
 
-	theta = arcsin(vec[1])
+	theta = asin(vec[1])
 	psi = 0
 	if abs(theta)< pi/2 -0.01:
-		psi = arctan2(vec[2],vec[0])
+		psi = atan2(vec[2],vec[0])
 
 	rotMatrix = np.zeros((3,3))
 	rotMatrix[0,0] = cos(theta)*cos(psi)
@@ -89,15 +126,8 @@ def AngularDisp(v1,v2):
 	""" Returns the angle in radians between vectors 'v1' and 'v2'    """
 	cosang = np.dot(v1, v2)
 	sinang = np.linalg.norm(np.cross(v1, v2))
-	return np.arctan2(sinang, cosang)
+	return atan2(sinang, cosang)
 
 	
-if __name__ == "__main__":
-	data = np.array([62221000,269.59,1093.42,1.00,462.21,952.80,-3.96,1])
-	meta = {'width_px':3840,'height_px':1920}
-
-	(CartHead,CartGaze,GazeVec_FOV) = PosTransform(data,meta)
-	print(AngularDisp(CartHead,CartGaze))
-
 
 
